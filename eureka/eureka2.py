@@ -89,8 +89,8 @@ def main(cfg):
             # cfg.model = QuantFactory/Meta-Llama-3-8B-Instruct-GGUF
             # cfg.local_model_filename = QuantFactory/Meta-Llama-3-8B-Instruct-GGUF
             model_filename = cfg.local_model_filename
-            tokenizer = AutoTokenizer.from_pretrained(model, gguf_file=cfg.local_model_filename)
-            local_model = AutoModelForCausalLM.from_pretrained(model, gguf_file=cfg.local_model_filename)
+            tokenizer = AutoTokenizer.from_pretrained(model, gguf_file=model_filename)
+            local_model = AutoModelForCausalLM.from_pretrained(model, gguf_file=model_filename)
 
         while True:
             if total_samples >= cfg.sample:
