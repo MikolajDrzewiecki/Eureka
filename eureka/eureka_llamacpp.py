@@ -366,16 +366,25 @@ def main(cfg):
         np.savez('summary.npz', max_successes=max_successes, execute_rates=execute_rates, best_code_paths=best_code_paths, max_successes_reward_correlation=max_successes_reward_correlation)
 
         if len(messages) == 2:
-            messages += [{"role": "assistant", "content": responses[best_sample_idx]["message"]["content"]}]
-            messages += [{"role": "user", "content": best_content}]
+            if cfg.local_model_filename:
+                messages += [responses[best_sample_idx]]
+                messages += [ChatMessage(role="user", content=best_content)]
+            else:
+                messages += [{"role": "assistant", "content": responses[best_sample_idx]["message"]["content"]}]
+                messages += [{"role": "user", "content": best_content}]
         else:
             assert len(messages) == 4
-            messages[-2] = {"role": "assistant", "content": responses[best_sample_idx]["message"]["content"]}
-            messages[-1] = {"role": "user", "content": best_content}
+            if cfg.local_model_filename:
+                messages[-2] = [responses[best_sample_idx]]
+                messages[-1] = [ChatMessage(role="user", content=best_content)]
+            else:
+                messages[-2] = {"role": "assistant", "content": responses[best_sample_idx]["message"]["content"]}
+                messages[-1] = {"role": "user", "content": best_content}
 
         # Save dictionary as JSON file
         with open('messages.json', 'w') as file:
-            json.dump(messages, file, indent=4)
+            serializable = [dict(m) for m in messages] if cfg.local_model_filename else messages
+            json.dump(serializable, file, indent=4)
     
     # Evaluate the best reward code many times
     if max_reward_code_path is None: 
