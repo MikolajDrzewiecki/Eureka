@@ -1,22 +1,22 @@
-import hydra
-import numpy as np 
 import json
-import logging 
-import matplotlib.pyplot as plt
+import logging
 import os
-import openai
 import re
-import subprocess
-from pathlib import Path
 import shutil
-import time 
-import torch
-from transformers import AutoTokenizer, AutoModelForCausalLM, pipeline
+import subprocess
+import time
+from pathlib import Path
 
-from utils.misc import * 
-from utils.file_utils import find_files_with_substring, load_tensorboard_logs
+import hydra
+import matplotlib.pyplot as plt
+import numpy as np
+import openai
+import torch
+from transformers import AutoModelForCausalLM, AutoTokenizer, pipeline
 from utils.create_task import create_task
 from utils.extract_task_code import *
+from utils.file_utils import find_files_with_substring, load_tensorboard_logs
+from utils.misc import *
 
 EUREKA_ROOT_DIR = os.getcwd()
 ISAAC_ROOT_DIR = f"{EUREKA_ROOT_DIR}/../isaacgymenvs/isaacgymenvs"
@@ -97,7 +97,7 @@ def main(cfg):
                 break
             for attempt in range(1000):
                 try:
-                    if cfg.local_model_path:
+                    if cfg.local_model_filename:
                         # cfg.model = QuantFactory/Meta-Llama-3-8B-Instruct-GGUF
                         # cfg.local_model_filename = QuantFactory/Meta-Llama-3-8B-Instruct-GGUF
 
@@ -130,7 +130,7 @@ def main(cfg):
                 logging.info("Code terminated due to too many failed attempts!")
                 exit()
 
-            if cfg.local_model_path:
+            if cfg.local_model_filename:
                 responses.extend(response_cur["generated-texts"])
             else:
                 responses.extend(response_cur["choices"])
@@ -142,7 +142,7 @@ def main(cfg):
             logging.info(f"Iteration {iter}: GPT Output:\n " + responses[0]["message"]["content"] + "\n")
 
         # Logging Token Information
-        if cfg.local_model_path:
+        if cfg.local_model_filename:
             logging.info(f"Iteration {iter}")
         else:
             logging.info(f"Iteration {iter}: Prompt Tokens: {prompt_tokens}, Completion Tokens: {total_completion_token}, Total Tokens: {total_token}")
@@ -150,7 +150,7 @@ def main(cfg):
         code_runs = [] 
         rl_runs = []
         for response_id in range(cfg.sample):
-            if cfg.local_model_path:
+            if cfg.local_model_filename:
                 response_cur = responses["generated-texts"][response_id]
             else:
                 response_cur = responses[response_id]["message"]["content"]
