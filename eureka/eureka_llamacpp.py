@@ -15,6 +15,7 @@ import numpy as np
 import openai
 import torch
 from llama_index.llms.llama_cpp import LlamaCPP
+from llama_index.core.base.llms.types import ChatMessage
 from llama_index.llms.llama_cpp.llama_utils import \
     messages_to_prompt_v3_instruct
 from utils.create_task import create_task
@@ -63,7 +64,8 @@ def main(cfg):
     initial_system = initial_system.format(task_reward_signature_string=reward_signature) + code_output_tip
     initial_user = initial_user.format(task_obs_code_string=task_obs_code_string, task_description=task_description)
     messages = [{"role": "system", "content": initial_system}, {"role": "user", "content": initial_user}]
-
+    if cfg.local_model_filename:
+        messages = [ChatMessage(**msg) for msg in messages]
     task_code_string = task_code_string.replace(task, task+suffix)
     # Create Task YAML files
     create_task(ISAAC_ROOT_DIR, cfg.env.task, cfg.env.env_name, suffix)
@@ -85,7 +87,7 @@ def main(cfg):
         total_samples = 0
         total_token = 0
         total_completion_token = 0
-        chunk_size = cfg.sample if "gpt-3.5" in model else 4
+        chunk_size = cfg.sample #if "gpt-3.5" in model else 4
 
         logging.info(f"Iteration {iter}: Generating {cfg.sample} samples with {cfg.model}")
 
@@ -93,7 +95,7 @@ def main(cfg):
             model_filename = cfg.local_model_filename
             llm = LlamaCPP(
                 model_url=None,
-                model_path=Path(model) / model_filename,
+                model_path=str(Path(model) / model_filename),
                 temperature=cfg.temperature,
                 max_new_tokens=1024,
                 context_window=32000, ### Make sure it fits the GPU you use. Depending on your context and the K value at RAG (see below) you will need 10~12k. If possible use all 32k.
@@ -109,12 +111,7 @@ def main(cfg):
             for attempt in range(1000):
                 try:
                     if cfg.local_model_filename:
-                        # FIXME figure out the proper way to call the llm and call it chunk_size times
-
-                        logging.info(f'messages: {messages}')
-                        logging.info(messages_to_prompt_v3_instruct(messages))
-                        response_cur = llm.complete(messages)
-                        logging.info(f'response: {response_cur}')
+                        response_cur = [llm.chat(messages) for _ in range(chunk_size)]
                         total_samples += chunk_size
                     else:
                         response_cur = openai.ChatCompletion.create(
@@ -136,7 +133,8 @@ def main(cfg):
                 exit()
 
             if cfg.local_model_filename:
-                responses.extend(response_cur["generated-texts"])
+                # Theoretically, additional_kwargs can hold token counts but it doesn't.
+                responses.extend([resp.message for resp in response_cur])
             else:
                 responses.extend(response_cur["choices"])
                 prompt_tokens = response_cur["usage"]["prompt_tokens"]
@@ -144,7 +142,8 @@ def main(cfg):
                 total_token += response_cur["usage"]["total_tokens"]
 
         if cfg.sample == 1:
-            logging.info(f"Iteration {iter}: GPT Output:\n " + responses[0]["message"]["content"] + "\n")
+            output = responses[0].content if cfg.local_model_filename else responses[0]["message"]["content"]
+            logging.info(f"Iteration {iter}: GPT Output:\n " + output + "\n")
 
         # Logging Token Information
         if cfg.local_model_filename:
@@ -156,7 +155,7 @@ def main(cfg):
         rl_runs = []
         for response_id in range(cfg.sample):
             if cfg.local_model_filename:
-                response_cur = responses[response_id]
+                response_cur = responses[response_id].content
             else:
                 response_cur = responses[response_id]["message"]["content"]
             logging.info(f"Iteration {iter}: Processing Code Run {response_id}")
@@ -344,7 +343,8 @@ def main(cfg):
 
         logging.info(f"Iteration {iter}: Max Success: {max_success}, Execute Rate: {execute_rate}, Max Success Reward Correlation: {max_success_reward_correlation}")
         logging.info(f"Iteration {iter}: Best Generation ID: {best_sample_idx}")
-        logging.info(f"Iteration {iter}: GPT Output Content:\n" +  responses[best_sample_idx]["message"]["content"] + "\n")
+        outputlol = responses[best_sample_idx].content if cfg.local_model_filename else responses[best_sample_idx]["message"]["content"]
+        logging.info(f"Iteration {iter}: GPT Output Content:\n" + outputlol + "\n")
         logging.info(f"Iteration {iter}: User Content:\n" + best_content + "\n")
             
         # Plot the success rate
