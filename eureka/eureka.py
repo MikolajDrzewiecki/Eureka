@@ -88,6 +88,8 @@ def main(cfg):
                 break
             for attempt in range(1000):
                 try:
+                    with open(f'messages_iter{iter}_attempt{attempt}.json', 'w') as file:
+                        json.dump(messages, file, indent=4)
                     response_cur = openai.ChatCompletion.create(
                         model=model,
                         messages=messages,
