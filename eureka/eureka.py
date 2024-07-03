@@ -239,7 +239,7 @@ def main(cfg):
                 tensorboard_logdir = line.split(':')[-1].strip() 
                 tensorboard_logs = load_tensorboard_logs(tensorboard_logdir)
                 logging.info(f"Iteration {iter}: Tensorboard Log Directory: {tensorboard_logdir}")
-                ckpt = list((Path(tensorboard_logdir) / ".." / "nn").rglob("*.pth"))
+                ckpt = list((Path(tensorboard_logdir) / ".." / "nn").rglob("last_*.pth"))
                 if len(ckpt) > 1:
                     logging.warning(f"Multiple checkpoints found for response_id {response_id}: {ckpt}")
                 elif len(ckpt) == 0:
