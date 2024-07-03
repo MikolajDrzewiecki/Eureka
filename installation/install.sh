@@ -2,10 +2,9 @@
 
 set -ex
 
-export WORKDIR=/notebooks
-export INSTALL_SCRIPTS_DIR=/notebooks/installation
+export WORKDIR=$(pwd)/..
+export INSTALL_SCRIPTS_DIR=$(pwd)
 mkdir -p "${WORKDIR}"
-echo "Make sure this script is located in ${INSTALL_SCRIPTS_DIR}"
 
 apt update
 apt install -y python3.8 python3.8-distutils libpython3.8-dev python3.8-tk xvfb psmisc telnet
