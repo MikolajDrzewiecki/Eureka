@@ -252,11 +252,16 @@ def main(cfg):
                 for metric in tensorboard_logs:
                     if "/" not in metric:
                         metric_cur = ['{:.2f}'.format(x) for x in tensorboard_logs[metric][::epoch_freq]]
-                        metric_cur_max = max(tensorboard_logs[metric])
-                        metric_cur_mean = sum(tensorboard_logs[metric]) / len(tensorboard_logs[metric])
+                        if tensorboard_logs[metric]:
+                            metric_cur_max = max(tensorboard_logs[metric])
+                            metric_cur_mean = sum(tensorboard_logs[metric]) / len(tensorboard_logs[metric])
+                            metric_cur_min = min(tensorboard_logs[metric])
+                        else:
+                            metric_cur_max = float("-inf")
+                            metric_cur_mean = float("nan")
+                            metric_cur_min = float("inf")
                         if "consecutive_successes" == metric:
                             successes.append(metric_cur_max)
-                        metric_cur_min = min(tensorboard_logs[metric])
                         if metric != "gt_reward" and metric != "gpt_reward":
                             if metric != "consecutive_successes":
                                 metric_name = metric 
